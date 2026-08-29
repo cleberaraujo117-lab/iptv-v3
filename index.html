@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPTV MANAGER PRO - v3 Interligado</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, -apple-system}
+body{background:#0f0f12;color:#e5e5e5;overflow-x:hidden}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:#141419;border-right:1px solid #25252c;padding:20px;z-index:20;transform:translateX(0);transition:.3s}
+.sidebar.hidden{transform:translateX(-100%)}
+.main{margin-left:260px;padding:20px;min-height:100vh}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}}
+.menu-item{padding:12px 16px;border-radius:12px;cursor:pointer;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.menu-item.active{background:#8b5cf6;color:white}
+.card{background:#1a1a1f;border:1px solid #25252c;border-radius:16px;padding:16px}
+.badge{background:#25252c;padding:2px 8px;border-radius:20px;font-size:12px}
+.badge-green{background:#065f46;color:#6ee7b7}
+.badge-orange{background:#7c2d12;color:#fdba74}
+.badge-purple{background:#4c1d95;color:#c4b5fd}
+.badge-gold{background:#78350f;color:#fde68a}
+.btn{background:#8b5cf6;color:white;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn-sm{padding:6px 12px;font-size:13px}
+.input{width:100%;background:#25252c;border:1px solid #333;padding:10px;border-radius:10px;color:white;margin:6px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.bar{height:8px;background:#25252c;border-radius:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px}
+</style>
+</head>
+<body>
+<div class="sidebar" id="sidebar">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+<div style="width:36px;height:36px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border-radius:10px;display:flex;align-items:center;justify-content:center">📺</div>
+<div><b>IPTV MANAGER</b><br><small style="color:#8b5cf6">PRO v3</small></div>
+</div>
+<div class="menu-item active" onclick="setTab('dash')">📊 Dashboard</div>
+<div class="menu-item" onclick="setTab('canais')">📺 Canais <span class="badge" id="bCanais">0</span></div>
+<div class="menu-item" onclick="setTab('grupos')">📚 Grupos <span class="badge" id="bGrupos">0</span></div>
+<div class="menu-item" onclick="setTab('import')">⬆️ Importar Lista</div>
+<div class="menu-item" onclick="setTab('clientes')">👥 Clientes <span class="badge" id="bClientes">0</span></div>
+<div class="menu-item" onclick="setTab('export')">💾 Exportação / Servidor</div>
+
+<div class="card" style="margin-top:40px;background:#1e1b4b;border-color:#4338ca">
+<small>⚡ Servidor Ativo</small><br>
+<span id="srvInfo" style="font-size:12px">Lista principal pronta</span>
+</div>
+</div>
+
+<div class="main">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<button class="btn-sm btn" onclick="toggleSide()">☰</button>
+<b id="tabTitle">Dashboard</b>
+<button class="btn-sm btn" onclick="setTab('canais')">+ Novo Canal</button>
+</div>
+
+<div id="dash">
+<div class="grid2">
+<div class="card"><small style="color:#888">TOTAL CANAIS</small><h1 id="tCanais">0</h1><small id="tOn" style="color:#10b981">0 online</small></div>
+<div class="card"><small style="color:#888">CLIENTES ATIVOS</small><h1 id="tCli">0</h1><small id="tTeste">0 em teste</small></div>
+<div class="card"><small style="color:#888">GRUPOS</small><h1 id="tGrup">0</h1><small>categorias organizadas</small></div>
+<div class="card" style="background:linear-gradient(135deg,#8b5cf6,#06b6d4)"><small>RECEITA MÊS</small><h1 id="tReceita">R$ 0</h1><small>estimativa mensal</small></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<b>Distribuição por Grupo</b>
+<div id="dist" style="margin-top:12px"></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<b>⏰ Expirações Próximas</b>
+<div id="exp" style="margin-top:12px"></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<b>📺 Canais Recentes</b>
+<div id="recentes"></div>
+</div>
+</div>
+
+<div id="canais" style="display:none"><div style="margin-bottom:10px"><button class="btn-sm" style="background:#25252c;color:white;border:none;padding:8px 14px;border-radius:8px" onclick="voltar('dash')">⬅️ Voltar ao Dashboard</button></div>
+<div class="card">
+<h3>Adicionar Canal do Zero (sem entrar em site)</h3>
+<input class="input" id="cNome" placeholder="Nome do canal ex: Globo HD">
+<div class="grid2">
+<select class="input" id="cGrupo"><option>ABERTOS</option><option>FILMES</option><option>SERIES</option><option>PLUTO TV</option><option>ESPORTES</option><option>INFANTIL</option><option>NOTICIAS</option><option>OUTROS</option></select>
+<input class="input" id="cUrl" placeholder="URL m3u8 https://...">
+</div>
+<button class="btn" onclick="addCanal()">Salvar Canal</button>
+</div>
+
+<div class="card" style="margin-top:16px">
+<input class="input" id="busca" placeholder="Buscar canal..." oninput="renderCanais()">
+<div id="listaCanais"></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<b>Player Teste (sem travar)</b>
+<div id="playingName" style="margin:8px 0;color:#8b5cf6"></div>
+<video id="video" controls style="width:100%;border-radius:12px;background:black;aspect-ratio:16/9"></video>
+<div style="margin-top:8px"><button class="btn-sm btn" onclick="stop()">Parar</button> <small id="vStatus">Parado</small></div>
+</div>
+</div>
+
+<div id="grupos" style="display:none"><div style="margin-bottom:10px"><button class="btn-sm" style="background:#25252c;color:white;border:none;padding:8px 14px;border-radius:8px" onclick="voltar('dash')">⬅️ Voltar ao Dashboard</button></div><div class="card"><b>Grupos</b><div id="listaGrupos"></div></div></div>
+
+<div id="import" style="display:none"><div style="margin-bottom:10px"><button class="btn-sm" style="background:#25252c;color:white;border:none;padding:8px 14px;border-radius:8px" onclick="voltar('dash')">⬅️ Voltar ao Dashboard</button></div>
+<div class="card">
+<b>Importar Lista M3U (cola direto)</b>
+<textarea class="input" id="m3uText" rows="8" placeholder="#EXTM3U..."></textarea>
+<input type="file" id="m3uFile" accept=".m3u,.txt" class="input">
+<button class="btn" onclick="importM3U()">Importar Canais</button>
+<div id="impRes" style="margin-top:8px"></div>
+</div>
+</div>
+
+<div id="clientes" style="display:none"><div style="margin-bottom:10px"><button class="btn-sm" style="background:#25252c;color:white;border:none;padding:8px 14px;border-radius:8px" onclick="voltar('dash')">⬅️ Voltar ao Dashboard</button></div>
+<div class="card">
+<h3>Gerar Teste / Plano (tudo no APP)</h3>
+<div class="grid2">
+<input class="input" id="cliNome" placeholder="Nome cliente ex: João">
+<input class="input" id="cliZap" placeholder="WhatsApp ex: 88 9 9999-9999">
+</div>
+<div class="grid2">
+<input class="input" id="cliTv" placeholder="Aparelho ex: Smart TV LG / TV Box">
+<input class="input" id="cliEmail" placeholder="Email (opcional)">
+</div>
+<select class="input" id="cliPlano">
+<option value="T6H">Teste 6:00 Horas - Grátis</option>
+<option value="M30">Mensal 30 dias - R$34,90</option>
+<option value="T90">Trimestral 90 dias - R$89,90</option>
+<option value="A365">Anual 365 dias - R$299,90</option>
+</select>
+<input class="input" id="cliObs" placeholder="Obs ex: Cliente indicou amigo, pagar dia 10">
+<button class="btn" onclick="addCliente()">Gerar Link Agora</button>
+<small style="display:block;margin-top:8px;color:#888">O link é gerado no app com expiração embutida e já funciona no seu servidor Vercel</small>
+</div>
+<div class="card" style="margin-top:16px"><b>Clientes</b><div id="listaClientes"></div></div>
+</div>
+
+<div id="export" style="display:none"><div style="margin-bottom:10px"><button class="btn-sm" style="background:#25252c;color:white;border:none;padding:8px 14px;border-radius:8px" onclick="voltar('dash')">⬅️ Voltar ao Dashboard</button></div>
+
+<div class="card" style="border-color:#8b5cf6;background:#1e1b4b">
+<b>🚀 ATUALIZAR LISTA NO SERVIDOR PELO APP (GitHub API)</b>
+<p style="font-size:12px;color:#c4b5fd;margin:8px 0">Preencha 1 vez e depois só clicar em ATUALIZAR. O app manda a lista direto pro GitHub e Vercel atualiza sozinho em 1 min!</p>
+<div class="grid2">
+<input class="input" id="ghToken" placeholder="GitHub Token (ghp_...)" type="password">
+<input class="input" id="ghOwner" placeholder="Dono GitHub ex: cleber2710">
+</div>
+<div class="grid2">
+<input class="input" id="ghRepo" placeholder="Repositorio ex: streammax-iptv-create-iv67">
+<input class="input" id="ghPath" placeholder="Arquivo ex: api/lista.js" value="api/lista.js">
+</div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button class="btn" style="background:#10b981" onclick="salvarGitHubConfig()">Salvar Config GitHub</button>
+<button class="btn" style="background:#8b5cf6" onclick="atualizarListaNoGitHub()" id="btnAtualizar">⬆️ Atualizar Lista no Servidor Agora</button>
+</div>
+<small style="color:#888;display:block;margin-top:8px">Como pegar Token: GitHub > Settings > Developer settings > Personal access tokens > Generate new token (classic) > marca REPO > Generate</small>
+<div id="ghStatus" style="margin-top:10px;font-size:13px"></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<b>Servidor Interligado</b>
+<p style="font-size:13px;color:#888;margin:8px 0">Seu app gera link no formato que o lista.js entende</p>
+<input class="input" id="srvUrl" value="https://streammax-iptv-create-iv67.vercel.app/api/lista">
+<button class="btn-sm btn" onclick="saveSrv()">Salvar Servidor</button>
+<hr style="margin:16px 0;border-color:#25252c">
+<button class="btn" onclick="baixarM3U()">Baixar M3U Principal</button>
+<button class="btn" onclick="copiarM3U()" style="background:#25252c">Copiar M3U</button>
+<button class="btn" onclick="exportJSON()" style="background:#065f46">Exportar Backup</button>
+<input type="file" id="importJSON" accept=".json" style="margin-top:8px" onchange="importJSON(event)">
+<pre id="m3uPreview" style="background:#0f0f12;padding:12px;border-radius:10px;overflow:auto;max-height:200px;margin-top:12px;font-size:11px"></pre>
+</div>
+</div>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('iptv_v3')||'null') || {
+canais:[
+{id:1,nome:'TV Diario',grupo:'ABERTOS',url:'https://video01.soultv.com.br/tvdiario/tvdiario/playlist.m3u8'},
+{id:2,nome:'RunTime Ação',grupo:'FILMES',url:'https://video01.soultv.com.br/runtimeacao/runtimeacao/playlist.m3u8'},
+{id:3,nome:'CineMundo',grupo:'FILMES',url:'https://video01.soultv.com.br/cinemonde/cinemonde/playlist.m3u8'},
+{id:4,nome:'Pluto Cine Ação',grupo:'PLUTO TV',url:'https://service-stitcher.clusters.pluto.tv/v1/stitch/embed/hls/channel/5e275f5d4d44e36a2261f859/master.m3u8?appName=web&deviceId=web&embedPartner=pluto.tv'},
+{id:5,nome:'ESPN Teste',grupo:'ESPORTES',url:'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'}
+],
+clientes:[
+{id:1,nome:'João Silva',plano:'M30',criadoEm:Date.now()-2*24*60*60*1000,expiraEm:Date.now()+28*24*60*60*1000,link:''},
+{id:2,nome:'José Cléber',plano:'M30',criadoEm:Date.now()-2*24*60*60*1000,expiraEm:Date.now()+28*24*60*60*1000,link:''}
+],
+srv:'https://streammax-iptv-create-iv67.vercel.app/api/lista'
+};
+let hls=null;
+function save(){localStorage.setItem('iptv_v3',JSON.stringify(data)); try{updateDashLight()}catch(e){}; } 
+function updateDashLight(){
+document.getElementById('bCanais').innerText=data.canais.length;
+document.getElementById('bGrupos').innerText=[...new Set(data.canais.map(c=>c.grupo))].length;
+document.getElementById('bClientes').innerText=data.clientes.length;
+}
+function toggleSide(){document.getElementById('sidebar').classList.toggle('open')}
+let currentTab='dash';
+function setTab(t){
+currentTab=t;
+['dash','canais','grupos','import','clientes','export'].forEach(id=>{
+let el=document.getElementById(id);
+if(el) el.style.display = (id===t?'block':'none');
+});
+document.getElementById('tabTitle').innerText=t.toUpperCase();
+document.getElementById('sidebar').classList.remove('open');
+document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+try{if(event && event.target) event.target.classList.add('active');}catch(e){}
+if(t==='dash') updateDash();
+if(t==='canais') renderCanais();
+if(t==='clientes') renderClientes();
+if(t==='grupos') renderGrupos();
+}
+function voltar(){setTab('dash')}
+function renderGrupos(){
+let grupos=[...new Set(data.canais.map(c=>c.grupo))];
+document.getElementById('bGrupos').innerText=grupos.length;
+document.getElementById('listaGrupos').innerHTML=grupos.map(g=>`<div style="padding:12px;background:#141419;border-radius:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center"><div><b>${g}</b><br><small>${data.canais.filter(c=>c.grupo==g).length} canais</small></div><span class="badge">${g}</span></div>`).join('');
+}
+function updateDash(){
+document.getElementById('bCanais').innerText=data.canais.length;
+let grupos=[...new Set(data.canais.map(c=>c.grupo))];
+document.getElementById('bGrupos').innerText=grupos.length;
+document.getElementById('bClientes').innerText=data.clientes.length;
+document.getElementById('tCanais').innerText=data.canais.length;
+document.getElementById('tOn').innerText=data.canais.length+' online';
+document.getElementById('tCli').innerText=data.clientes.length;
+document.getElementById('tTeste').innerText=data.clientes.filter(c=>c.plano=='T6H').length+' em teste';
+document.getElementById('tGrup').innerText=grupos.length;
+let receita=0;
+data.clientes.forEach(c=>{if(c.plano=='M30')receita+=34.9;if(c.plano=='T90')receita+=89.9;if(c.plano=='A365')receita+=299.9});
+document.getElementById('tReceita').innerText='R$ '+receita.toFixed(2);
+document.getElementById('srvInfo').innerText='Lista com '+data.canais.length+' canais em '+grupos.length+' grupos';
+// dist
+let dist=document.getElementById('dist');dist.innerHTML='';
+let colors={ABERTOS:'#8b5cf6',ESPORTES:'#06b6d4',FILMES:'#ec4899',INFANTIL:'#f59e0b',SERIES:'#10b981',NOTICIAS:'#ef4444','PLUTO TV':'#6366f1',OUTROS:'#6b7280'};
+grupos.forEach(g=>{
+let cnt=data.canais.filter(c=>c.grupo==g).length;
+let pct=Math.round(cnt/data.canais.length*100);
+dist.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><div style="width:80px;font-size:13px">● ${g}</div><div class="bar" style="flex:1"><div class="bar-fill" style="width:${pct}%;background:${colors[g]||'#8b5cf6'}"></div></div><div style="width:20px;text-align:right;font-size:12px">${cnt}</div></div>`;
+});
+let exp=document.getElementById('exp');exp.innerHTML='';
+[...data.clientes].sort((a,b)=>a.expiraEm-b.expiraEm).slice(0,5).forEach(c=>{
+let dias=Math.ceil((c.expiraEm-Date.now())/86400000);
+let cor=dias<0?'#ef4444':dias<3?'#f59e0b':'#10b981';
+let txt=dias<0?'Expirado':dias==0?'Hoje':dias+' dias';
+exp.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:10px;background:#141419;border-radius:10px;margin:6px 0"><div><b>${c.nome}</b><br><small>${c.plano}</small></div><span class="badge" style="background:${cor}22;color:${cor}">${txt}</span></div>`;
+});
+let rec=document.getElementById('recentes');rec.innerHTML=data.canais.slice(-3).map(c=>`<div style="padding:8px 0;border-bottom:1px solid #25252c;display:flex;justify-content:space-between"><span>${c.nome}</span><span class="badge">${c.grupo}</span></div>`).join('');
+document.getElementById('srvUrl').value=data.srv;
+}
+function voltar(tab){setTab(tab||'dash')}
+function renderCanais(){
+let q=(document.getElementById('busca').value||'').toLowerCase();
+let div=document.getElementById('listaCanais');div.innerHTML='';
+data.canais.filter(c=>c.nome.toLowerCase().includes(q)).slice(0,50).forEach(c=>{
+let status=c.status||'online';
+div.innerHTML+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#141419;border-radius:10px;margin:6px 0"><div style="flex:1"><b>${c.nome}</b> <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:${status=='online'?'#065f46':'#7f1d1d'};color:${status=='online'?'#6ee7b7':'#fca5a5'}">${status}</span><br><small style="color:#888">${c.grupo} • ${c.url.slice(0,35)}...</small></div><div style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn-sm btn" style="background:#1e40af" onclick="testLink(${c.id})" id="btnTest${c.id}">📡 Testar</button><button class="btn-sm btn" onclick="play(${c.id})">▶️ Play</button><button class="btn-sm btn" style="background:#4c1d95" onclick="openEdit(${c.id})">✏️ Editar</button><button class="btn-sm" style="background:#7f1d1d;color:white;border:none;padding:6px 10px;border-radius:8px" onclick="delCanal(${c.id})">🗑️</button></div></div>`;
+});
+}
+function testLink(id){
+let c=data.canais.find(x=>x.id==id); if(!c) return;
+let btn=document.getElementById('btnTest'+id);
+if(btn) btn.innerText='⏳...';
+let v=document.createElement('video');
+let timeout=setTimeout(()=>{updateStatus(id,'offline',btn);},8000);
+if(Hls.isSupported()){
+let th=new Hls();
+th.loadSource(c.url);
+th.on(Hls.Events.MANIFEST_PARSED,()=>{clearTimeout(timeout);updateStatus(id,'online',btn);th.destroy();});
+th.on(Hls.Events.ERROR,()=>{clearTimeout(timeout);updateStatus(id,'offline',btn);th.destroy();});
+th.attachMedia(v);
+} else {
+fetch(c.url,{method:'HEAD',mode:'no-cors'}).then(()=>{clearTimeout(timeout);updateStatus(id,'online',btn)}).catch(()=>{clearTimeout(timeout);updateStatus(id,'offline',btn)});
+}
+}
+function updateStatus(id,status,btn){
+let c=data.canais.find(x=>x.id==id); if(c) c.status=status;
+if(btn) btn.innerText=status=='online'?'✅ Online':'❌ Offline';
+save(); renderCanais(); updateDash();
+setTimeout(()=>{if(btn) btn.innerText='📡 Testar'},3000);
+}
+function renderClientes(){
+let div=document.getElementById('listaClientes');div.innerHTML='';
+data.clientes.forEach(c=>{
+let dias=Math.ceil((c.expiraEm-Date.now())/86400000);
+let hrs=Math.ceil((c.expiraEm-Date.now())/3600000);
+let txt=c.plano=='T6H'? (hrs<=0?'Expirado':hrs+'h restantes') : (dias<=0?'Expirado':dias+' dias');
+let link=`${data.srv}/${c.nome.toUpperCase().replace(/\\s/g,'')}-${c.plano}-${c.criadoEm}.m3u`;
+let badgeClass=c.plano=='T6H'?'badge-orange':c.plano=='M30'?'badge-green':c.plano=='T90'?'badge-purple':'badge-gold';
+div.innerHTML+=`<div style="padding:12px;background:#141419;border-radius:12px;margin:8px 0"><div style="display:flex;justify-content:space-between"><b>${c.nome}</b><span class="badge ${badgeClass}">${c.plano}</span></div><small style="color:#888">${txt}</small><br><input class="input" value="${link}" readonly style="font-size:11px"><div style="margin-top:6px"><button class="btn-sm btn" onclick="navigator.clipboard.writeText('${link}')">Copiar</button> <button class="btn-sm btn" style="background:#065f46" onclick="renovar(${c.id})">Renovar</button> <button class="btn-sm" style="background:#7f1d1d;color:white;border:none;padding:6px 10px;border-radius:8px" onclick="delCli(${c.id})">Excluir</button></div></div>`;
+});
+}
+function renderAll(){updateDash();renderCanais();renderClientes();document.getElementById('listaGrupos').innerHTML=[...new Set(data.canais.map(c=>c.grupo))].map(g=>`<div style="padding:10px;background:#141419;border-radius:10px;margin:6px 0;display:flex;justify-content:space-between"><b>${g}</b><span>${data.canais.filter(c=>c.grupo==g).length} canais</span></div>`).join('')}
+function addCanal(){
+let nome=document.getElementById('cNome').value.trim();
+let grupo=document.getElementById('cGrupo').value;
+let url=document.getElementById('cUrl').value.trim();
+if(!nome||!url){alert('Preencha nome e URL');return}
+data.canais.push({id:Date.now(),nome,grupo,url});
+document.getElementById('cNome').value='';document.getElementById('cUrl').value='';
+save();renderCanais();alert('Canal salvo! Criado do zero direto no app ✅');
+}
+function delCanal(id){if(confirm('Excluir?')){data.canais=data.canais.filter(c=>c.id!=id);save();renderCanais()}}
+function importM3U(){
+let text=document.getElementById('m3uText').value;
+let file=document.getElementById('m3uFile').files[0];
+if(file){let r=new FileReader();r.onload=e=>{parseM3U(e.target.result)};r.readAsText(file);return}
+parseM3U(text);
+}
+function parseM3U(text){
+let lines=text.split('\n');let count=0;
+for(let i=0;i<lines.length;i++){
+let line=lines[i].trim();
+if(line.startsWith('#EXTINF')){
+let nome=line.split(',').pop()||'Sem nome';
+let grupo=(line.match(/group-title="([^"]+)"/)||[])[1]||'OUTROS';
+let next=lines[i+1]?.trim();
+if(next && next.startsWith('http')){
+data.canais.push({id:Date.now()+count,nome:nome.trim(),grupo:grupo.toUpperCase(),url:next});
+count++;
+}
+}
+}
+document.getElementById('impRes').innerText=count+' canais importados!';
+save();renderCanais();
+}
+function addCliente(){
+let nome=document.getElementById('cliNome').value.trim();
+let zap=document.getElementById('cliZap').value.trim();
+let tv=document.getElementById('cliTv').value.trim();
+let email=document.getElementById('cliEmail').value.trim();
+let obs=document.getElementById('cliObs').value.trim();
+let plano=document.getElementById('cliPlano').value;
+if(!nome){alert('Nome');return}
+let dur=plano=='T6H'?6*3600000:plano=='M30'?30*86400000:plano=='T90'?90*86400000:365*86400000;
+let agora=Date.now();
+data.clientes.push({id:agora,nome,zap,tv,email,obs,plano,criadoEm:agora,expiraEm:agora+dur,pago:plano=='T6H'});
+document.getElementById('cliNome').value='';document.getElementById('cliZap').value='';document.getElementById('cliTv').value='';document.getElementById('cliEmail').value='';document.getElementById('cliObs').value='';
+save();renderClientes();
+alert('Link gerado no APP e interligado com servidor! ✅');
+}
+function delCli(id){data.clientes=data.clientes.filter(c=>c.id!=id);save();renderClientes()}
+function renovar(id){let c=data.clientes.find(x=>x.id==id);if(c){let dur=c.plano=='T6H'?6*3600000:c.plano=='M30'?30*86400000:c.plano=='T90'?90*86400000:365*86400000;c.expiraEm=Date.now()+dur;c.criadoEm=Date.now();save();renderClientes()}}
+function play(id){
+let c=data.canais.find(x=>x.id==id);if(!c)return;
+document.getElementById('playingName').innerText='Tocando: '+c.nome;
+let v=document.getElementById('video');let st=document.getElementById('vStatus');
+if(hls){hls.destroy();hls=null}
+if(Hls.isSupported()){
+hls=new Hls();hls.loadSource(c.url);hls.attachMedia(v);
+hls.on(Hls.Events.MANIFEST_PARSED,()=>{v.play();st.innerText='Ao vivo'});
+hls.on(Hls.Events.ERROR,()=>{st.innerText='Erro no link'});
+}else if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=c.url;v.play();st.innerText='Ao vivo'}else{st.innerText='Navegador não suporta HLS'}
+}
+function stop(){let v=document.getElementById('video');v.pause();v.src='';if(hls){hls.destroy();hls=null}document.getElementById('vStatus').innerText='Parado'}
+function saveSrv(){data.srv=document.getElementById('srvUrl').value.trim();save();alert('Servidor salvo!')}
+function gerarM3U(){let m='#EXTM3U\n';data.canais.forEach(c=>{m+=`#EXTINF:-1 group-title="${c.grupo}",${c.nome}\n${c.url}\n`});return m}
+function baixarM3U(){let blob=new Blob([gerarM3U()],{type:'audio/x-mpegurl'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lista_'+Date.now()+'.m3u';a.click(); document.getElementById('m3uPreview').textContent=gerarM3U().slice(0,1000)+"\n..."; }
+function copiarM3U(){navigator.clipboard.writeText(gerarM3U());alert('M3U copiado!')}
+function exportJSON(){let blob=new Blob([JSON.stringify(data)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='backup_iptv.json';a.click()}
+function importJSON(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=ev=>{try{data=JSON.parse(ev.target.result);save();renderAll();alert('Backup restaurado!')}catch{alert('Erro')}};r.readAsText(f)}
+
+function salvarGitHubConfig(){
+let cfg={
+token:document.getElementById('ghToken').value.trim(),
+owner:document.getElementById('ghOwner').value.trim(),
+repo:document.getElementById('ghRepo').value.trim(),
+path:document.getElementById('ghPath').value.trim()||'api/lista.js'
+};
+localStorage.setItem('github_cfg', JSON.stringify(cfg));
+document.getElementById('ghStatus').innerHTML='<span style="color:#10b981">✅ Configuração salva!</span>';
+// also fill srvUrl if empty
+}
+function loadGitHubConfig(){
+try{
+let cfg=JSON.parse(localStorage.getItem('github_cfg')||'{}');
+if(cfg.token) document.getElementById('ghToken').value=cfg.token;
+if(cfg.owner) document.getElementById('ghOwner').value=cfg.owner;
+if(cfg.repo) document.getElementById('ghRepo').value=cfg.repo;
+if(cfg.path) document.getElementById('ghPath').value=cfg.path;
+}catch(e){}
+}
+
+
+async function atualizarListaNoGitHub(){
+let cfg;
+try{cfg=JSON.parse(localStorage.getItem('github_cfg')||'{}');}catch{cfg={}}
+cfg.token=cfg.token||document.getElementById('ghToken').value.trim();
+cfg.owner=cfg.owner||document.getElementById('ghOwner').value.trim();
+cfg.repo=cfg.repo||document.getElementById('ghRepo').value.trim();
+if(!cfg.token||!cfg.owner||!cfg.repo){alert('Preencha Token, Owner e Repo no Exportação!'); setTab('export'); return;}
+let status=document.getElementById('ghStatus');
+let btn=document.getElementById('btnAtualizar');
+btn.innerText='⏳ Corrigindo pastas e enviando...'; btn.disabled=true;
+status.innerHTML='Limpando estrutura errada e criando arquivos certos...';
+
+try{
+let canaisStr = JSON.stringify(data.canais.map(c=>({nome:c.nome, grupo:c.grupo, url:c.url})), null, 2);
+let novoArquivo = `// ATUALIZADO VIA APP EM ${new Date().toLocaleString('pt-BR')} - ${data.canais.length} canais
+const CANAIS_ATUAIS = ${canaisStr};
+
+export default function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Cache-Control", "no-store");
+  let rawId = "";
+  try {
+    if(req.query && req.query.id) rawId = req.query.id.toString();
+    else if(req.url){
+      const mm = req.url.match(/\/api\/lista\/(.+)/);
+      if(mm) rawId = decodeURIComponent(mm[1]);
+    }
+  } catch(e){}
+  rawId = rawId.replace(/\.m3u$/i,"").split("?")[0];
+  const timeMatch = rawId.match(/(\d{13})$/);
+  let expirado = false;
+  if(timeMatch){
+    const criadoEm = parseInt(timeMatch[1],10);
+    let dur = 6*60*60*1000;
+    if(rawId.includes("-M30-")) dur=30*24*60*60*1000;
+    else if(rawId.includes("-T90-")) dur=90*24*60*60*1000;
+    else if(rawId.includes("-A365-")) dur=365*24*60*60*1000;
+    if(Date.now()-criadoEm>dur) expirado=true;
+  }
+  if(expirado){
+    res.setHeader("Content-Type","audio/x-mpegurl");
+    return res.status(200).send('#EXTM3U\n#EXTINF:-1 group-title="AVISO",CONTA EXPIRADA\nhttps://via.placeholder.com/1x1.mp4');
+  }
+  let m3u='#EXTM3U\n';
+  CANAIS_ATUAIS.forEach(c=>{
+    m3u+=\`#EXTINF:-1 group-title="\${c.grupo}",\${c.nome}\n\${c.url}\n\`;
+  });
+  res.setHeader("Content-Type","audio/x-mpegurl; charset=utf-8");
+  res.setHeader("Content-Disposition",\`inline; filename="\${rawId||'lista'}.m3u"\`);
+  return res.status(200).send(m3u);
+}
+`;
+
+async function putFile(path){
+  let getRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, {
+    headers:{'Authorization':`Bearer ${cfg.token}`, 'Accept':'application/vnd.github.v3+json'}
+  });
+  let sha=null;
+  if(getRes.ok){let j=await getRes.json(); sha=j.sha;}
+  let base64 = btoa(unescape(encodeURIComponent(novoArquivo)));
+  let body={message:`Atualiza ${path} - ${data.canais.length} canais`, content:base64, sha:sha||undefined};
+  if(!sha) delete body.sha;
+  let putRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, {
+    method:'PUT',
+    headers:{'Authorization':`Bearer ${cfg.token}`, 'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!putRes.ok) throw new Error(await putRes.text());
+}
+
+async function deleteFileIfExists(path){
+  try{
+    let getRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, {
+      headers:{'Authorization':`Bearer ${cfg.token}`, 'Accept':'application/vnd.github.v3+json'}
+    });
+    if(!getRes.ok) return;
+    let j=await getRes.json(); let sha=j.sha;
+    await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`, {
+      method:'DELETE',
+      headers:{'Authorization':`Bearer ${cfg.token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({message:`Remove ${path} duplicado`, sha:sha})
+    });
+  }catch(e){}
+}
+
+// 1. Apaga estrutura errada api/api/lista/...
+await deleteFileIfExists('api/api/lista/lista.js');
+await deleteFileIfExists('api/api/lista/[id].js');
+await deleteFileIfExists('API/lista.js');
+await deleteFileIfExists('API/lista/[id].js');
+await deleteFileIfExists('vercel.json');
+
+// 2. Cria estrutura certa
+await putFile('api/lista.js');
+await putFile('api/lista/[id].js');
+
+  // garante package.json existe
+  try{
+    let getRes = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/package.json`, {headers:{'Authorization':`Bearer ${cfg.token}`}});
+    if(!getRes.ok){
+      let pkg = btoa('{"name":"iptv","type":"module"}');
+      await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/package.json`, {method:'PUT', headers:{'Authorization':`Bearer ${cfg.token}`, 'Content-Type':'application/json'}, body: JSON.stringify({message:'Add package.json', content:pkg})});
+    }
+  }catch(e){}
+ // garante package.json
+
+status.innerHTML='<span style="color:#10b981">✅ PRONTO! Estrutura corrigida!<br>Arquivos criados: api/lista.js e api/lista/[id].js<br>Vercel vai atualizar em 2 min.<br>Teste: https://'+cfg.owner+'.vercel.app/api/lista/teste.m3u ou seu dominio</span>';
+btn.innerText='✅ Corrigido!';
+
+}catch(err){
+status.innerHTML='<span style="color:#ef4444">❌ Erro: '+err.message.slice(0,600)+'</span>';
+btn.innerText='❌ Tentar Novamente';
+}
+btn.disabled=false;
+localStorage.setItem('github_cfg', JSON.stringify(cfg));
+}
+
+
+
+// Load on start
+setTimeout(loadGitHubConfig,500);
+
+document.addEventListener('DOMContentLoaded',()=>{renderAll(); setTab('dash'); loadGitHubConfig();});
+</script>
+
+<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99;align-items:center;justify-content:center;padding:20px">
+<div class="card" style="width:100%;max-width:400px">
+<h3>✏️ Editar Canal</h3>
+<input type="hidden" id="eId">
+<input class="input" id="eNome" placeholder="Nome">
+<select class="input" id="eGrupo"><option>ABERTOS</option><option>FILMES</option><option>SERIES</option><option>PLUTO TV</option><option>ESPORTES</option><option>INFANTIL</option><option>NOTICIAS</option><option>OUTROS</option></select>
+<input class="input" id="eUrl" placeholder="URL m3u8">
+<div style="display:flex;gap:8px;margin-top:12px">
+<button class="btn" onclick="saveEdit()">Salvar</button>
+<button class="btn" style="background:#25252c" onclick="closeEdit()">Cancelar</button>
+</div>
+</div>
+</div>
+<script>
+function openEdit(id){
+let c=data.canais.find(x=>x.id==id); if(!c) return;
+document.getElementById('eId').value=c.id;
+document.getElementById('eNome').value=c.nome;
+document.getElementById('eGrupo').value=c.grupo;
+document.getElementById('eUrl').value=c.url;
+document.getElementById('editModal').style.display='flex';
+}
+function closeEdit(){document.getElementById('editModal').style.display='none'}
+function saveEdit(){
+let id=parseInt(document.getElementById('eId').value);
+let c=data.canais.find(x=>x.id==id);
+if(c){
+c.nome=document.getElementById('eNome').value.trim();
+c.grupo=document.getElementById('eGrupo').value;
+c.url=document.getElementById('eUrl').value.trim();
+c.status='online';
+save();
+renderCanais();
+updateDash();
+closeEdit();
+alert('Link editado com sucesso! ✅');
+}
+}
+</script>
+</body>
+</html>
